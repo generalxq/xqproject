@@ -1,0 +1,36 @@
+# prompt: previous cell downloaded kaggle dataset load the files and  give paths and  highlights
+
+import os
+# Assuming 'path' variable from previous cell holds the directory
+# where the dataset files are extracted
+for dirname, _, filenames in os.walk(path):
+    for filename in filenames:
+        print(os.path.join(dirname, filename))
+        # highlight some files (example)
+        if filename.endswith(".jpg") or filename.endswith(".csv"):
+          print(f"Highlight: {filename} - potential image or CSV file")
+
+
+
+import os
+
+# Assuming 'path' variable from previous cell holds the directory
+# where the dataset files are extracted.  If not, replace with the
+# correct path.
+
+#  Since the provided code doesn't show how the blood cancer types are encoded
+# in the file names or any other metadata, this solution will print the
+# directory names within the dataset.  A more complete solution would require
+# knowing how the cancer types are stored within the dataset.
+
+blood_cancer_types = set()
+for dirname, _, filenames in os.walk(path):
+    # Extract potential cancer type from directory name
+    potential_type = os.path.basename(dirname)
+    if potential_type not in ["blood-cell-cancer-all-4class", "images"]:  # Exclude root and image directory
+      blood_cancer_types.add(potential_type)
+
+print("Potential Blood Cancer Types found in directory names:")
+for cancer_type in blood_cancer_types:
+    print(cancer_type)
+
