@@ -1,0 +1,208 @@
+# Blood Cancer Classification Model Report
+
+## 1. Introduction
+Blood cancer detection is a critical task in the medical domain, requiring accurate and efficient classification of different types of blood cells. This report documents the development, preprocessing, training, and evaluation of a Convolutional Neural Network (CNN) model to classify blood cancer types using microscopic images of blood cells. The dataset is sourced from Kaggle, and the implementation is done in Python using TensorFlow and Keras.
+
+---
+
+## 2. Libraries and Tools Used
+### Importing Necessary Libraries
+We utilized the following libraries to implement the model:
+- `tensorflow.keras.models.Sequential`: Enables the creation of a sequential model, which is a linear stack of layers.
+- `tensorflow.keras.layers.Conv2D`: Implements 2D convolution layers to extract spatial features from the images.
+- `tensorflow.keras.layers.MaxPooling2D`: Reduces spatial dimensions of feature maps, minimizing computational cost and overfitting.
+- `tensorflow.keras.layers.Flatten`: Flattens the multi-dimensional feature maps into a single vector for the dense layers.
+- `tensorflow.keras.layers.Dense`: Implements fully connected layers essential for classification tasks.
+- `tensorflow.keras.layers.Dropout`: Helps in regularization by randomly setting a fraction of the input units to zero during training.
+- `tensorflow.keras.preprocessing.image.ImageDataGenerator`: Provides real-time data augmentation and preprocessing for training and validation data.
+
+---
+
+## 3. Dataset and Preprocessing
+### Dataset Overview
+The dataset was downloaded using KaggleHub from the repository "mohammadamireshraghi/blood-cell-cancer-all-4class." It contains images of different blood cancer types categorized into the following classes:
+1. Benign
+2. [Malignant] Pre-B
+3. [Malignant] Pro-B
+4. Blood cell Cancer [ALL]
+5. [Malignant] early Pre-B
+
+### Preprocessing with ImageDataGenerator
+We employed `ImageDataGenerator` for real-time data preprocessing and augmentation:
+- **Rescaling**: Normalized pixel values to the range [0, 1] by dividing each pixel value by 255.
+- **Splitting**: Divided the dataset into training (80%) and validation (20%) subsets.
+
+Here is the preprocessing code:
+```python
+datagen = ImageDataGenerator(
+    rescale=1.0 / 255,  # Normalize pixel values
+    validation_split=0.2  # Use 20% of data for validation
+)
+train_data = datagen.flow_from_directory(
+    path,
+    target_size=image_size,
+    batch_size=batch_size,
+    class_mode='categorical',
+    subset='training',
+    classes=categories
+)
+val_data = datagen.flow_from_directory(
+    path,
+    target_size=image_size,
+    batch_size=batch_size,
+    class_mode='categorical',
+    subset='validation',
+    classes=categories
+)
+```
+
+Benefits of `ImageDataGenerator`:
+- It facilitates real-time data augmentation and reduces overfitting.
+- It handles large datasets by generating batches of data on the fly, avoiding memory overload.
+
+---
+
+## 4. Visualizing the Dataset
+We visualized a batch of training data to verify the preprocessing steps and ensure labels matched the images. Below is the code snippet for visualization:
+```python
+images, labels = next(train_data)
+class_names = list(train_data.class_indices.keys())
+
+plt.figure(figsize=(12, 12))
+for i in range(min(16, len(images))):  # Ensure no IndexError
+    plt.subplot(4, 4, i + 1)
+    plt.imshow(images[i])
+    plt.title(class_names[np.argmax(labels[i])])
+    plt.axis("off")
+plt.show()
+```
+This visualization step is crucial for verifying that the data is correctly preprocessed and labeled before training.
+
+---
+
+## 5. Model Architecture
+### CNN Model Design
+We designed a Convolutional Neural Network (CNN) to classify the images into the five categories. The architecture includes:
+1. **Convolutional Layers**:
+   - Extract spatial features from the images.
+   - Implemented with 32 and 64 filters of size (3, 3) and ReLU activation.
+2. **MaxPooling Layers**:
+   - Reduce spatial dimensions by down-sampling feature maps.
+   - Pool size of (2, 2) applied after each convolutional layer.
+3. **Flatten Layer**:
+   - Converts 2D feature maps into a 1D feature vector.
+4. **Fully Connected Dense Layers**:
+   - Dense layer with 128 neurons and ReLU activation.
+   - Output layer with 5 neurons (one for each class) and softmax activation.
+5. **Dropout Layer**:
+   - Dropout rate of 0.5 to prevent overfitting.
+
+Here is the model code:
+```python
+model = Sequential([
+    Conv2D(32, (3, 3), activation="relu", input_shape=(150, 150, 3)),
+    MaxPooling2D((2, 2)),
+    Conv2D(64, (3, 3), activation="relu"),
+    MaxPooling2D((2, 2)),
+    Flatten(),
+    Dense(128, activation="relu"),
+    Dropout(0.5),
+    Dense(len(categories), activation="softmax"),
+])
+```
+
+### Compilation
+The model was compiled with:
+- **Optimizer**: Adam, which converges faster and reduces training time.
+- **Loss Function**: Categorical Cross-Entropy, suitable for multi-class classification.
+- **Metrics**: Accuracy, to evaluate the model's performance.
+
+```python
+model.compile(optimizer="adam", loss="categorical_crossentropy", metrics=["accuracy"])
+```
+
+---
+
+## 6. Training the Model
+The model was trained for 10 epochs using the training and validation datasets. The history object recorded the loss and accuracy for both datasets during training.
+
+```python
+history = model.fit(
+    train_data, validation_data=val_data, epochs=10, verbose=1
+)
+```
+
+Benefits of early stopping and monitoring training metrics:
+- Prevents overfitting by stopping training once validation loss stops improving.
+- Provides insights into model performance during training.
+
+---
+
+## 7. Evaluation
+### Metrics
+The model was evaluated on both training and validation datasets to measure its performance:
+- **Accuracy**: The proportion of correctly predicted samples.
+- **Loss**: The categorical cross-entropy loss.
+
+```python
+train_loss, train_acc = model.evaluate(train_data, verbose=1)
+val_loss, val_acc = model.evaluate(val_data, verbose=1)
+```
+
+### Results
+- Training Accuracy: High accuracy indicates the model learned the training data well.
+- Validation Accuracy: Indicates the model's ability to generalize to unseen data.
+
+---
+
+## 8. Predictions and Analysis
+We predicted the labels for the validation dataset and compared them to the true labels:
+```python
+predictions = model.predict(val_data)
+y_pred = np.argmax(predictions, axis=1)
+y_true = val_data.classes
+```
+
+### Confusion Matrix
+A confusion matrix was generated to evaluate the classification performance per class:
+```python
+cm = confusion_matrix(y_true, y_pred)
+plt.figure(figsize=(10, 10))
+plt.imshow(cm, interpolation="nearest", cmap=plt.cm.Blues)
+plt.title("Confusion Matrix")
+plt.colorbar()
+tick_marks = np.arange(len(class_names))
+plt.xticks(tick_marks, class_names, rotation=45)
+plt.yticks(tick_marks, class_names)
+```
+
+### Classification Report
+A detailed classification report provided precision, recall, and F1 scores for each class:
+```python
+print(classification_report(y_true, y_pred, target_names=class_names))
+```
+
+---
+
+## 9. Model Saving
+The trained model was saved to disk for future use:
+```python
+model.save("BloodCancerClassifier.h5")
+```
+This allows the model to be reloaded and used for inference without retraining.
+
+---
+
+## 10. Conclusion
+This report documents the end-to-end development of a CNN model for blood cancer classification:
+1. Utilized TensorFlow and Keras for model creation.
+2. Preprocessed data with `ImageDataGenerator`.
+3. Designed and trained a CNN model.
+4. Evaluated the model's performance and saved it for future use.
+
+Future improvements could include:
+- Using advanced CNN architectures like ResNet or EfficientNet.
+- Incorporating data augmentation techniques to improve generalization.
+- Experimenting with transfer learning to leverage pre-trained models.
+
+This project demonstrates the power of CNNs in medical image classification and provides a solid foundation for further improvements in blood cancer detection systems.
